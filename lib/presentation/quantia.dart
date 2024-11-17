@@ -1,26 +1,35 @@
 import 'dart:collection';
 
-class Calculator {
+class Quantia {
+
+static bool isNumber(String value) {
+  return value.isNotEmpty && value.length == 1 && value.codeUnitAt(0) >= 48 && value.codeUnitAt(0) <= 57;
+}
 
 /// Función para verificar si un token es un operador
-bool isOperator(String token) {
+static bool isOperator(String token) {
   return ['+', '-', '*', '/'].contains(token);
 }
 
 /// Asignar precedencia a cada operador
-int getPrecedence(String operator) {
+static int getPrecedence(String operator) {
   if (operator == '+' || operator == '-') return 1;
   if (operator == '*' || operator == '/') return 2;
   return 0;
 }
 
 /// Algoritmo Shunting Yard para convertir a notación postfija (RPN)
-List<String> toPostfix(String expression) {
+static List<String> toPostfix(String expression) {
+
+  expression.trim();
+
   List<String> output = [];
   Queue<String> operators = Queue();
 
   final regex = RegExp(r'(\d+(\.\d+)?|\+|\-|\*|\/|\(|\))');
   final tokens = regex.allMatches(expression).map((m) => m.group(0)!).toList();
+
+  if (tokens.isEmpty) return ["0"];
 
   for (var token in tokens) {
     if (double.tryParse(token) != null) {
@@ -53,7 +62,10 @@ List<String> toPostfix(String expression) {
 }
 
 /// Evaluar expresión en notación postfija (RPN)
-double evaluatePostfix(List<String> postfix) {
+static double evaluatePostfix(List<String> postfix) {
+
+  if (postfix.isEmpty) return 0.0;
+  
   Queue<double> stack = Queue();
 
   for (var token in postfix) {

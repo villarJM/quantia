@@ -1,4 +1,6 @@
+import 'package:calculator/presentation/quantia.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class HomeScreen extends StatefulWidget {
 const HomeScreen({ super.key });
@@ -9,19 +11,18 @@ const HomeScreen({ super.key });
 
 class _HomeScreenState extends State<HomeScreen> {
 
+  TextEditingController textEditingController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
+  String result = "";
 
   final tokens = [
     ["C", "%", "+", "DEL"],
     ["7", "8", "9", "x"],
-    ["4", "5", "6", "x"],
+    ["4", "5", "6", "/"],
     ["1", "2", "3", "-"],
-    ["7", "0", ".", "/"]
+    ["7", "0", ".", "="]
   ];
-
-  bool isNumber(String value) {
-    return value.isNotEmpty && value.length == 1 && value.codeUnitAt(0) >= 48 && value.codeUnitAt(0) <= 57;
-  }
 
   @override
   void initState() {
@@ -52,6 +53,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: const Color(0XffFFF3C7),
                   borderRadius: BorderRadius.circular(10)
                 ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Spacer(),
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          focusedBorder: InputBorder.none,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none
+                        ),
+                        onChanged: (value) {
+                          try {
+                            List<String> postfix = Quantia.toPostfix(value);
+                            debugPrint('Postfix: $postfix');
+
+                            // Evaluar la expresión en notación postfija
+                            double result = Quantia.evaluatePostfix(postfix);
+                            debugPrint('Resultado: $result'); 
+                            setState(() {
+                              this.result = result.toString();
+                            });
+                          } catch (e) {
+                            debugPrint(e.toString()); 
+                            result = e.toString();
+                            setState(() {
+                              
+                            });
+                          }
+                        },
+                        inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
+                        controller: textEditingController,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      Text("= $result")
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20,),
@@ -63,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: item.map((token) {
                     return ButtonQuantia(
                       char: token,
-                      isSymbol: isNumber(token),
+                      isSymbol: Quantia.isNumber(token),
                     );
                   }).toList(),
                 );
