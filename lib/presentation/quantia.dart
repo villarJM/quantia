@@ -1,30 +1,9 @@
 import 'dart:collection';
 
+import 'package:calculator/presentation/utils/quantia_utils.dart';
 import 'package:flutter/material.dart';
 
 class Quantia {
-
-  static bool isNumber(String value) {
-    return value.isNotEmpty && value.length == 1 && value.codeUnitAt(0) >= 48 && value.codeUnitAt(0) <= 57;
-  }
-
-  /// Función para verificar si una letra del abecedario
-  static bool isLetter(String char) {
-    final letterRegex = RegExp(r'^[a-zA-Z]$');
-    return letterRegex.hasMatch(char);
-  }
-
-  /// Función para verificar si un token es un operador
-  static bool isOperator(String token) {
-    return ['+', '-', '*', '/'].contains(token);
-  }
-
-  /// Asignar precedencia a cada operador
-  static int getPrecedence(String operator) {
-    if (operator == '+' || operator == '-') return 1;
-    if (operator == '*' || operator == '/') return 2;
-    return 0;
-  }
 
   static Set<String> divideEquation(String equation) {
     final divide = equation.split("=");
@@ -47,9 +26,9 @@ class Quantia {
     for (var token in tokens) {
       if (double.tryParse(token) != null) {
         output.add(token); // Números van al output
-      } else if (isOperator(token)) {
+      } else if (QuantiaUtils.isOperator(token)) {
         while (operators.isNotEmpty &&
-            getPrecedence(operators.last) >= getPrecedence(token)) {
+            QuantiaUtils.getPrecedence(operators.last) >= QuantiaUtils.getPrecedence(token)) {
           output.add(operators.removeLast());
         }
         operators.addLast(token);
@@ -84,7 +63,7 @@ class Quantia {
     for (var token in postfix) {
       if (double.tryParse(token) != null) {
         stack.addLast(double.parse(token));
-      } else if (isOperator(token)) {
+      } else if (QuantiaUtils.isOperator(token)) {
         final b = stack.removeLast();
         final a = stack.removeLast();
         switch (token) {
@@ -117,7 +96,16 @@ class Quantia {
   
    */
 
-  static String evaluateExp(String expression) {
+  static String processInput(String input) {
+    // Paso 1: Detectar si la entrada es una ecuación
+    if (input.contains('=')) { // Si hay un igual, es una ecuación
+      return evaluateLinearEquations(input);
+    } else {
+      return evaluateExpression(input);
+    }
+  }
+
+  static String evaluateLinearEquations(String expression) {
     if (expression.isEmpty) return "0.0";
     // Paso 1: Dividir la ecuación en lado izquierdo y derecho
     final leftEquation = divideEquation(expression).first;
@@ -153,11 +141,51 @@ class Quantia {
       return "$x";
     } else {
       if (constants == 0) {
-        throw Exception("Infinitas soluciones (Identidad, como 0 = 0");
+        return "$constants.0";
       } else {
         throw Exception("Sin Soluciones");
       }
     }
+  }
+
+  static String evaluateExpression(String expression) {
+    // Paso 1: Separar la expresión en términos (dividir por '+' y '-')
+    List<String> terms = splitTerms(expression);
+    // Paso 2: Inicializar el coeficiente total de x y la constante total
+    int coefTotal = 0;
+    int constantTotal = 0;
+    String result = "";
+    String termTotal = "";
+    String constTotal = "";
+    // Paso 3: Evaluar cada término de la expresión
+    for (var term in terms) {
+      if (QuantiaUtils.isVariable(term)) { // Si el término tiene 'x', es un término con variable
+      final variable = QuantiaUtils.extractVariable(term); //extrae la varible de un termino con una varible 2x, 5a
+        final coefficient = extractCoefficient(term, variable!); // Extraer el coeficiente de x
+        coefTotal = coefTotal + coefficient; // Sumar al coeficiente total
+        termTotal = '$coefTotal${QuantiaUtils.extractVariable(term)}';
+        if (coefTotal == 1) {
+          termTotal = '${QuantiaUtils.extractVariable(term)}';
+        } else if (coefTotal == -1) {
+          termTotal = '-${QuantiaUtils.extractVariable(term)}';
+        } else if (coefTotal == 0) {
+          termTotal = "";
+        }
+      } else { // Si el término es constante
+        final constant = convertToNumber(term); // Convertir el término a número
+        constantTotal = constantTotal + constant; // Sumar a la constante total
+        constTotal = '$constantTotal';
+        if (constant > 0) {
+          constTotal = '+$constTotal';
+        } else if (constant == 0) {
+          constTotal = "";
+        }
+        
+      }
+    }
+    result = '$termTotal$constTotal';
+    // Paso 4: Devolver el resultado (coeficiente de x y constante total)
+    return result;
   }
 
   static List<String> getTerms(String expression) {
@@ -166,7 +194,7 @@ class Quantia {
     String currentTerm = "";
 
     for (var char in tokens) {
-      if (isOperator(char)) {
+      if (QuantiaUtils.isOperator(char)) {
         if (currentTerm.isNotEmpty) {
           terms.add(currentTerm);
         }
@@ -210,11 +238,11 @@ class Quantia {
   static int plusConstants(List<String> terms) {
     int result = 0;
     for (var term in terms) {
-      if (!isLetter(term)) {
+      if (!QuantiaUtils.isLetter(term)) {
         result += convertToNumber(term);
       }
     }
-    return result;
+    return result; 
   }
   // Esta función extrae el coeficiente de un término de la variable
   static int extractCoefficient(String term, String variable) {
@@ -255,6 +283,7 @@ class Quantia {
       index = 1;
     } else if (numberText[0] == '+') {
       index = 1;
+      isNagative = false;
     } else {
       isNagative = false;
     }
@@ -272,6 +301,30 @@ class Quantia {
     }
 
     return number;
+  }
+  
+  static List<String> splitTerms(String expression) {
+    // Dividir la expresión en términos, separando por '+' y '-'
+    final terms = divideByOperators(expression, ['+', '-']);
+    return terms;
+  }
+  
+  static List<String> divideByOperators(String expression, List<String> operators) {
+    // Paso 1: Inicializar una lista para los términos
+    List<String> terms = [];
+    // Paso 2: Iterar sobre la expresión y dividirla según los operadores
+    int startTerm = 0;  // El inicio de un nuevo término
+    for (var i = 0; i < expression.length - 1; i++) {
+      if (operators.contains(expression[i])) {
+        // Si encontramos un operador, guardar el término hasta esa posición
+        terms.add(expression.substring(startTerm, i).trim()); // Se toma el término anterior sin espacios
+        startTerm = i; // El siguiente término comienza después del operador
+      }
+    }
+    // Agregar el último término después del último operador
+    terms.add(expression.substring(startTerm).trim());
+    // Paso 3: Retornar la lista de términos
+    return terms;
   }
   
 }

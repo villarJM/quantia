@@ -1,4 +1,5 @@
 import 'package:calculator/presentation/quantia.dart';
+import 'package:calculator/presentation/utils/quantia_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onChanged: (value) {
                           try {
 
-                            final result = Quantia.evaluateExp(value);
+                            final result = Quantia.processInput(value);
                             // List<String> postfix = Quantia.toPostfix(value);
                             // debugPrint('Postfix: $postfix');
 
@@ -105,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: item.map((token) {
                     return ButtonQuantia(
                       char: token,
-                      isSymbol: Quantia.isNumber(token),
+                      isSymbol: QuantiaUtils.isNumber(token),
                     );
                   }).toList(),
                 );
