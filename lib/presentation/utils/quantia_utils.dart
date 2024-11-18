@@ -19,7 +19,7 @@ class QuantiaUtils {
     return match?.group(0);
   }
 
-  static bool isVariable(String term) {
+  static bool containsVariable(String term) {
     // Expresión regular que busca letras (a-z, A-Z) en el término.
     final regex = RegExp(r'[a-zA-Z]');
     return regex.hasMatch(term);

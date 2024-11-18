@@ -152,27 +152,45 @@ class Quantia {
     // Paso 1: Separar la expresión en términos (dividir por '+' y '-')
     List<String> terms = splitTerms(expression);
     // Paso 2: Inicializar el coeficiente total de x y la constante total
-    int coefTotal = 0;
+    int coefTotalXVariable = 0;
     int constantTotal = 0;
     String result = "";
     String termTotal = "";
     String constTotal = "";
-    // Paso 3: Evaluar cada término de la expresión
-    for (var term in terms) {
-      if (QuantiaUtils.isVariable(term)) { // Si el término tiene 'x', es un término con variable
-      final variable = QuantiaUtils.extractVariable(term); //extrae la varible de un termino con una varible 2x, 5a
-        final coefficient = extractCoefficient(term, variable!); // Extraer el coeficiente de x
-        coefTotal = coefTotal + coefficient; // Sumar al coeficiente total
-        termTotal = '$coefTotal${QuantiaUtils.extractVariable(term)}';
-        if (coefTotal == 1) {
-          termTotal = '${QuantiaUtils.extractVariable(term)}';
-        } else if (coefTotal == -1) {
-          termTotal = '-${QuantiaUtils.extractVariable(term)}';
-        } else if (coefTotal == 0) {
-          termTotal = "";
+    List<String> termsWithVariable = [];
+    List<String> termsWithConstant = [];
+    List<String> uniqueVariableList = [];
+    Set<String?> uniqueVariables = {};
+    List<String> plusForTerms = [];
+
+    //pila de posiciones de las variables
+    String currentVar = "";
+
+    // Paso 2.1: Separar terminos de las constantes
+    termsWithVariable = terms.where( QuantiaUtils.containsVariable ).toList();
+    termsWithConstant = terms.where( (term) => !QuantiaUtils.containsVariable(term) ).toList();
+    uniqueVariables = terms
+    .map(QuantiaUtils.extractVariable)
+    .where((variable) => variable != null)
+    .toSet();
+
+    uniqueVariableList = List.from(uniqueVariables);
+    // Sumar terminos
+    for (var i = 0; i < uniqueVariableList.length; i++) {
+      for (var j = 0; j < termsWithVariable.length; j++) {
+        currentVar = QuantiaUtils.extractVariable(termsWithVariable[j])!;
+        if (uniqueVariableList[i] == currentVar) {
+          final coefficient = extractCoefficient(termsWithVariable[j], currentVar);
+          coefTotalXVariable = coefTotalXVariable + coefficient;
         }
-      } else { // Si el término es constante
-        final constant = convertToNumber(term); // Convertir el término a número
+      }
+      termTotal += "$coefTotalXVariable${uniqueVariableList[i]}";
+      plusForTerms.add('$coefTotalXVariable${uniqueVariableList[i]}');
+      coefTotalXVariable = 0;
+    }
+    // Sumar constantes
+    for (var term in termsWithConstant) {
+      final constant = convertToNumber(term); // Convertir el término a número
         constantTotal = constantTotal + constant; // Sumar a la constante total
         constTotal = '$constantTotal';
         if (constant > 0) {
@@ -180,8 +198,6 @@ class Quantia {
         } else if (constant == 0) {
           constTotal = "";
         }
-        
-      }
     }
     result = '$termTotal$constTotal';
     // Paso 4: Devolver el resultado (coeficiente de x y constante total)
@@ -317,8 +333,11 @@ class Quantia {
     for (var i = 0; i < expression.length - 1; i++) {
       if (operators.contains(expression[i])) {
         // Si encontramos un operador, guardar el término hasta esa posición
-        terms.add(expression.substring(startTerm, i).trim()); // Se toma el término anterior sin espacios
-        startTerm = i; // El siguiente término comienza después del operador
+        if (expression.substring(startTerm, i).isNotEmpty) {
+          terms.add(expression.substring(startTerm, i).trim()); // Se toma el término anterior sin espacios
+          startTerm = i; // El siguiente término comienza después del operador
+        }
+        
       }
     }
     // Agregar el último término después del último operador
