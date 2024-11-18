@@ -67,12 +67,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         onChanged: (value) {
                           try {
-                            List<String> postfix = Quantia.toPostfix(value);
-                            debugPrint('Postfix: $postfix');
 
-                            // Evaluar la expresión en notación postfija
-                            double result = Quantia.evaluatePostfix(postfix);
-                            debugPrint('Resultado: $result'); 
+                            final result = Quantia.evaluateExp(value);
+                            // List<String> postfix = Quantia.toPostfix(value);
+                            // debugPrint('Postfix: $postfix');
+
+                            // // Evaluar la expresión en notación postfija
+                            // double result = Quantia.evaluatePostfix(postfix);
+                            // debugPrint('Resultado: $result'); 
                             setState(() {
                               this.result = result.toString();
                             });
